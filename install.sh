@@ -13,6 +13,30 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Download files if not present (for curl | bash installation)
+REPO_URL="https://raw.githubusercontent.com/daedlock/deepcool-lm/main"
+TEMP_DIR=$(mktemp -d)
+
+download_file() {
+    local file=$1
+    if [ ! -f "$file" ]; then
+        echo "📥 Downloading $file..."
+        curl -fsSL "$REPO_URL/$file" -o "$TEMP_DIR/$file"
+        FILE_SOURCE="$TEMP_DIR"
+    else
+        FILE_SOURCE="."
+    fi
+}
+
+# Check if we need to download files
+if [ ! -f "deepcool-lm" ] || [ ! -f "deepcool-lm.service" ]; then
+    echo "📥 Downloading driver files from GitHub..."
+    download_file "deepcool-lm"
+    download_file "deepcool-lm.service"
+else
+    FILE_SOURCE="."
+fi
+
 # Check for lm_sensors
 echo "🔍 Checking for lm_sensors..."
 if ! systemctl is-enabled --quiet lm_sensors.service 2>/dev/null; then
@@ -61,13 +85,13 @@ fi
 
 # Install CLI tool
 echo "📦 Installing deepcool-lm CLI tool..."
-cp deepcool-lm /usr/local/bin/deepcool-lm
+cp "$FILE_SOURCE/deepcool-lm" /usr/local/bin/deepcool-lm
 chmod +x /usr/local/bin/deepcool-lm
 echo "✓ Installed to /usr/local/bin/deepcool-lm"
 
 # Install systemd service
 echo "📦 Installing systemd service..."
-cp deepcool-lm.service /etc/systemd/system/deepcool-lm.service
+cp "$FILE_SOURCE/deepcool-lm.service" /etc/systemd/system/deepcool-lm.service
 systemctl daemon-reload
 echo "✓ Service installed"
 
@@ -113,3 +137,8 @@ echo "  Brightness down:   sudo deepcool-lm brightness down"
 echo ""
 echo "Run 'deepcool-lm --help' for more options"
 echo ""
+
+# Cleanup temp directory if we downloaded files
+if [ "$FILE_SOURCE" = "$TEMP_DIR" ]; then
+    rm -rf "$TEMP_DIR"
+fi

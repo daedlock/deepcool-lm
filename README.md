@@ -39,16 +39,10 @@ The monitor interface features:
 
 ## Installation
 
-### Option 1: Install from AUR (Arch Linux)
+### Arch Linux (AUR)
 
 ```bash
-# Using your preferred AUR helper
 yay -S deepcool-lm
-
-# Or manually with makepkg
-git clone https://aur.archlinux.org/deepcool-lm.git
-cd deepcool-lm
-makepkg -si
 ```
 
 After installation, configure `lm_sensors`:
@@ -57,15 +51,24 @@ sudo sensors-detect  # Answer YES to save configuration
 sudo systemctl enable --now lm_sensors
 ```
 
-Then start the driver:
+The service will automatically start if your device is connected!
+
+### Other Distributions
+
 ```bash
-sudo systemctl enable --now deepcool-lm
+curl -fsSL https://raw.githubusercontent.com/daedlock/deepcool-lm/main/install.sh | sudo bash
 ```
 
-### Option 2: Manual Installation
+Or manually:
+```bash
+# Install dependencies first (Python 3, pyusb, psutil, pillow, lm_sensors)
+# Then run:
+curl -O https://raw.githubusercontent.com/daedlock/deepcool-lm/main/install.sh
+chmod +x install.sh
+sudo ./install.sh
+```
 
-#### 1. Install Dependencies
-
+**Dependencies by distribution:**
 ```bash
 # Arch Linux
 sudo pacman -S lm_sensors python-pyusb python-psutil python-pillow
@@ -77,26 +80,11 @@ sudo apt install lm-sensors python3-usb python3-psutil python3-pil
 sudo dnf install lm_sensors python3-pyusb python3-psutil python3-pillow
 ```
 
-**Important:** Configure `lm_sensors` for temperature monitoring:
+**Configure lm_sensors:**
 ```bash
-sudo sensors-detect  # Follow prompts, answer YES to save
+sudo sensors-detect  # Answer YES to save
 sudo systemctl enable --now lm_sensors
 ```
-
-#### 2. Run Installation Script
-
-```bash
-git clone https://github.com/yourusername/deepcool-lm.git
-cd deepcool-lm
-chmod +x install.sh
-sudo ./install.sh
-```
-
-The installer will:
-- Detect your Deepcool LM series device
-- Install the `deepcool-lm` CLI tool to `/usr/local/bin/`
-- Install the systemd service
-- Optionally enable and start the service
 
 ## Usage
 
