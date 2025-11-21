@@ -8,3 +8,12 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Makepkg build artifacts
+pkg/
+src/
+*.pkg.tar.zst
+*.pkg.tar.xz
+
+# Test script (development only)
+test_aur_package.sh

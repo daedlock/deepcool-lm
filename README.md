@@ -1,189 +1,325 @@
-# Deepcool LM360 Linux Driver
+# Deepcool LM Series LCD Driver for Linux
 
-**Working Linux driver for the Deepcool LM360 AIO cooler LCD display.**
+A comprehensive Linux driver for Deepcool LM series AIO coolers with LCD displays (320x240). Features a polished system monitoring interface with real-time CPU/GPU temperature display, CPU usage tracking, and custom image support.
+
+![LM360 Display](https://img.shields.io/badge/Resolution-320x240-blue) ![License](https://img.shields.io/badge/License-MIT-green)
+
+> **Note**: This driver is designed for Deepcool LM series coolers. Currently tested and confirmed working on **LM360** only. Other LM series models (LM240, LM280, etc.) may work but have not been tested. Contributions and testing reports are welcome!
 
 ## Features
 
-✅ Live CPU/GPU temperature display
-✅ Custom image rendering (320x240 RGB565)
-✅ Brightness control
-✅ Zen mode (screen off/on)
-✅ Color pattern testing
-✅ Easy-to-use CLI tool
+- 🎨 **Polished System Monitor** - Beautiful dual-panel interface with CPU and GPU stats
+- 🌡️ **Temperature Monitoring** - Real-time CPU and GPU temperature display with color gradients
+- 📊 **Usage Tracking** - CPU usage percentage with animated progress bars
+- ⚡ **CPU Frequency** - Current CPU frequency display
+- 🖼️ **Custom Images** - Display any image on the LCD (auto-resized to 320x240)
+- 🔆 **Brightness Control** - Adjust display brightness
+- 🔄 **Persistent State** - Service maintains display mode (monitor/image/color)
+- 🎯 **Clean UI** - Modern design with rounded borders, icons, and smooth progress bars
+- 🔌 **IPC Communication** - CLI communicates with running service without conflicts
 
-## Hardware Support
+## Display Preview
 
-- **Device**: Deepcool LM360
-- **USB VID:PID**: 3633:0026
-- **Display**: 320x240 RGB565 LCD
+The monitor interface features:
+- **CPU Section** (Top): Temperature, usage %, frequency, and usage progress bar
+- **GPU Section** (Bottom): Temperature with visual temperature gradient
+- **Color-coded Temps**: Cool blue (< 40°C) → Green (< 60°C) → Yellow (< 75°C) → Orange (< 85°C) → Red (85°C+)
+- **Rounded Containers**: Modern card-based layout with 8px rounded corners
+- **Icons**: Visual indicators (⚙ for CPU, ▣ for GPU)
 
 ## Requirements
 
-```bash
-# Python dependencies
-sudo pip install pyusb pillow psutil
-
-# On Arch Linux
-sudo pacman -S python-pyusb python-pillow python-psutil
-```
+- Python 3.7+
+- Root/sudo access (required for USB communication)
+- `lm_sensors` - Hardware monitoring (for temperature readings)
+- Python dependencies:
+  - `pyusb` - USB communication
+  - `psutil` - System monitoring
+  - `pillow` - Image rendering
 
 ## Installation
 
-```bash
-# Clone or download this repository
-cd coolmaster-driver
-
-# Make the CLI tool executable
-chmod +x lm360
-
-# (Optional) Copy to system path
-sudo cp lm360 /usr/local/bin/
-```
-
-## Quick Start
-
-### Display Live Temperatures
+### Option 1: Install from AUR (Arch Linux)
 
 ```bash
-# Update every 2 seconds (default)
-sudo ./lm360 temps
+# Using your preferred AUR helper
+yay -S deepcool-lm
 
-# Update every second
-sudo ./lm360 temps --interval 1
+# Or manually with makepkg
+git clone https://aur.archlinux.org/deepcool-lm.git
+cd deepcool-lm
+makepkg -si
 ```
 
-### Display Custom Image
+After installation, configure `lm_sensors`:
+```bash
+sudo sensors-detect  # Answer YES to save configuration
+sudo systemctl enable --now lm_sensors
+```
+
+Then start the driver:
+```bash
+sudo systemctl enable --now deepcool-lm
+```
+
+### Option 2: Manual Installation
+
+#### 1. Install Dependencies
 
 ```bash
-sudo ./lm360 image /path/to/image.jpg
+# Arch Linux
+sudo pacman -S lm_sensors python-pyusb python-psutil python-pillow
+
+# Ubuntu/Debian
+sudo apt install lm-sensors python3-usb python3-psutil python3-pil
+
+# Fedora
+sudo dnf install lm_sensors python3-pyusb python3-psutil python3-pillow
 ```
 
-### Control Brightness
+**Important:** Configure `lm_sensors` for temperature monitoring:
+```bash
+sudo sensors-detect  # Follow prompts, answer YES to save
+sudo systemctl enable --now lm_sensors
+```
+
+#### 2. Run Installation Script
 
 ```bash
-sudo ./lm360 brightness up
-sudo ./lm360 brightness down
+git clone https://github.com/yourusername/deepcool-lm.git
+cd deepcool-lm
+chmod +x install.sh
+sudo ./install.sh
 ```
 
-### Test Display
+The installer will:
+- Detect your Deepcool LM series device
+- Install the `deepcool-lm` CLI tool to `/usr/local/bin/`
+- Install the systemd service
+- Optionally enable and start the service
+
+## Usage
+
+### Systemd Service (Recommended)
+
+The service runs the system monitor automatically in the background:
 
 ```bash
-sudo ./lm360 test
+# Start the service
+sudo systemctl start deepcool-lm
+
+# Enable on boot
+sudo systemctl enable deepcool-lm
+
+# Check status
+sudo systemctl status deepcool-lm
+
+# View logs
+sudo journalctl -u deepcool-lm -f
+
+# Stop the service
+sudo systemctl stop deepcool-lm
 ```
 
-## USB Packet Capture
+### CLI Commands
 
-### Prerequisites
+The `deepcool-lm` command provides various functions. When the service is running, commands communicate via IPC without conflicts:
 
-- Windows PC or Windows VM (VirtualBox)
-- Official Deepcool software from www.cryoex.com
-- Linux machine with `usbmon` support
+#### System Monitor
+```bash
+# Start monitoring (when service is not running)
+sudo deepcool-lm monitor
 
-### Method 1: Using VirtualBox
+# Switch back to monitoring mode (when service is running)
+sudo deepcool-lm monitor
+```
 
-1. **Set up Windows VM**:
-   ```bash
-   # Install VirtualBox if not installed
-   sudo pacman -S virtualbox
+#### Display Custom Image
+```bash
+# Display any image (will be resized to 320x240)
+# Image persists until you switch modes
+sudo deepcool-lm image /path/to/photo.jpg
+sudo deepcool-lm image ~/wallpaper.png
+```
 
-   # Create Windows VM and install official Deepcool software
-   ```
+#### Display Solid Color
+```bash
+# Black screen
+sudo deepcool-lm solid --color 0 0 0
 
-2. **Enable USB monitoring on Linux host**:
-   ```bash
-   # Load usbmon kernel module
-   sudo modprobe usbmon
+# Red screen
+sudo deepcool-lm solid --color 255 0 0
 
-   # Find the USB bus number for LM360
-   lsusb | grep "3633:0026"
-   # Example output: Bus 001 Device 010: ID 3633:0026 DC LM-Series
+# Custom RGB color
+sudo deepcool-lm solid --color 100 150 200
+```
 
-   # Start capturing (replace '1' with your bus number)
-   sudo cat /sys/kernel/debug/usb/usbmon/1u > lm360_capture.txt
-   ```
+#### Brightness Control
+```bash
+# Increase brightness
+sudo deepcool-lm brightness up
 
-3. **Pass USB to VM and capture traffic**:
-   - In VirtualBox, attach the LM360 USB device to Windows VM
-   - In Windows, run the official Deepcool software
-   - Display CPU/GPU temps, change screens, etc.
-   - Stop the capture after ~30 seconds
+# Decrease brightness
+sudo deepcool-lm brightness down
+```
 
-4. **Analyze the capture**:
-   ```bash
-   # View the captured data
-   less lm360_capture.txt
-   ```
+#### Show Help
+```bash
+deepcool-lm --help
+```
 
-### Method 2: Using Wireshark (Alternative)
+### Usage Examples
+
+**Typical workflow:**
+```bash
+# Service is running showing CPU/GPU monitoring
+
+# Display a custom image
+sudo deepcool-lm image ~/my-image.jpg
+# Image stays on screen
+
+# Switch back to monitoring
+sudo deepcool-lm monitor
+# Back to CPU/GPU stats
+
+# Adjust brightness while monitoring
+sudo deepcool-lm brightness up
+```
+
+## Uninstallation
 
 ```bash
-# Install wireshark with USBPcap support
-sudo pacman -S wireshark-qt
-
-# Run wireshark as root
-sudo wireshark
+sudo ./uninstall.sh
 ```
 
-1. Select the USB interface for Bus 001
-2. Start capture
-3. In Windows (or VM), run Deepcool software
-4. Stop capture and analyze packets
+This will:
+- Stop and disable the systemd service
+- Remove the service file
+- Remove the CLI tool
+- Clean up socket files
 
-## Project Structure
+## Technical Details
 
+### Compatibility
+- **Tested Models**: Deepcool LM360
+- **Likely Compatible**: Other LM series models (LM240, LM280, etc.) with USB VID:PID `3633:0026`
+- **Status**: Untested on other LM series models - please report compatibility!
+
+### Device Information
+- **Vendor ID**: `0x3633`
+- **Product ID**: `0x0026`
+- **Display**: 320x240 RGB565
+- **Protocol**: USB Bulk Transfer
+- **Endpoint**: `0x01` (OUT)
+
+### Frame Format
+- **Header**: 13 bytes (`aa 08 00 00 01 00 58 02 00 2c 01 bc 11`)
+- **Framebuffer**: 153,600 bytes (320 × 240 × 2)
+- **Pixel Format**: RGB565 little-endian
+
+### IPC Communication
+- **Socket**: `/var/run/deepcool-lm.sock`
+- **Protocol**: Unix domain socket with JSON commands
+- **Supported actions**: monitor, image, solid, brightness_up, brightness_down
+
+### Temperature Sources
+- **CPU**: `coretemp` sensor (first core)
+- **GPU**: `nvme` sensor (if available)
+
+The driver uses `psutil.sensors_temperatures()` to read system temperatures. You can check available sensors with:
+
+```bash
+sensors
+```
+
+## Troubleshooting
+
+### Device Not Found
+```bash
+# Check if device is detected
+lsusb | grep 3633
+
+# Should show: Bus XXX Device XXX: ID 3633:0026
+```
+
+### Permission Denied
+Make sure you're running with `sudo`:
+```bash
+sudo deepcool-lm monitor
+```
+
+### Service Won't Start
+Check logs for errors:
+```bash
+sudo journalctl -u deepcool-lm -n 50
+```
+
+### Screen Goes Black When CLI Stops
+This is expected behavior when running CLI directly. Use the systemd service for persistent display:
+```bash
+sudo systemctl start deepcool-lm
+sudo systemctl enable deepcool-lm  # Start on boot
+```
+
+### Missing Temperature Sensors
+If temps show as 0°C, check available sensors:
+```bash
+sensors
+```
+
+You may need to load kernel modules:
+```bash
+sudo modprobe coretemp  # For Intel CPUs
+```
+
+## Development
+
+### Project Structure
 ```
 coolmaster-driver/
-├── main.py                          # USB probe script
-├── README.md                        # This file
-├── FINDINGS.md                      # Research findings
-├── pyproject.toml                   # Python project config
-├── .venv/                           # Python virtual environment
-├── deepcool-digital-linux/          # Nortank12's driver (tested, doesn't work)
-├── deepcool-digital-linux-philling/ # philling-dev's driver (pre-built only)
-└── deepcool-digital-info/           # Algorithm0's driver (tested, doesn't work)
+├── deepcool-lm              # Main CLI tool (standalone executable)
+├── deepcool-lm.service      # Systemd service file
+├── install.sh               # Installation script
+├── uninstall.sh             # Uninstallation script
+├── PKGBUILD                 # Arch Linux package build
+├── deepcool-lm-driver.install # AUR install hooks
+└── README.md                # This file
 ```
 
-## Dependencies
+### Building Custom Layouts
 
-```bash
-# Python packages (already installed in .venv)
-uv pip install hidapi psutil pyjson5 click
+The `render_monitor_display()` function in `deepcool-lm` can be customized to create different layouts. Key functions:
+
+- `draw_rounded_rect()` - Draw rounded rectangles
+- `get_temp_color()` - Get color based on temperature
+- `rgb_to_framebuffer()` - Convert PIL image to RGB565
+
+Example of adding a custom element:
+```python
+# In render_monitor_display()
+draw.text((160, 120), "Custom Text", fill=(255, 255, 255), font=fonts['small'])
 ```
 
-## Next Steps
+## Credits
 
-1. **Run the probe script** with sudo
-2. **Review output** to see if any protocol works
-3. **If no protocol works**:
-   - Set up USB packet capture
-   - Analyze the official software's USB communication
-   - Implement the protocol in Python
-4. **Build the driver**:
-   - Create Python driver using `hidapi`
-   - Add CPU/GPU temperature monitoring
-   - Package as systemd service
-
-## Resources
-
-- [USB Reverse Engineering Guide (Hackaday)](https://hackaday.com/2018/05/25/usb-reverse-engineering-a-universal-guide/)
-- [OpenRazer USB Reverse Engineering Wiki](https://github.com/openrazer/openrazer/wiki/Reverse-Engineering-USB-Protocol)
-- [liquidctl Documentation](https://github.com/liquidctl/liquidctl)
-
-## Device Information
-
-- **Model**: Deepcool LM360
-- **USB VID**: `0x3633` (Deepcool)
-- **USB PID**: `0x0026` (LM Series)
-- **Display**: 2.4" IPS LCD with MP4 support
-- **Connection**: USB 2.0 (9-pin internal header)
-
-## Contributing
-
-If you successfully reverse engineer the protocol or get the driver working, please consider:
-- Opening an issue in the existing Deepcool driver repos
-- Sharing your findings with the community
-- Contributing to this project
+This driver was developed through reverse engineering the USB protocol used by the official Windows software.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - Feel free to use and modify
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
+
+## Changelog
+
+### v1.0.0
+- Initial release
+- System monitoring with CPU/GPU temperature
+- Custom image display with persistent state
+- Solid color display
+- Brightness control
+- IPC communication for conflict-free CLI usage
+- Systemd service integration
+- Polished UI with rounded borders and progress bars
