@@ -27,28 +27,12 @@ The monitor interface features:
 - **Rounded Containers**: Modern card-based layout with 8px rounded corners
 - **Icons**: Visual indicators (⚙ for CPU, ▣ for GPU)
 
-## Requirements
-
-- Python 3.7+
-- Root/sudo access (required for USB communication)
-- `lm_sensors` - Hardware monitoring (for temperature readings)
-- Python dependencies:
-  - `pyusb` - USB communication
-  - `psutil` - System monitoring
-  - `pillow` - Image rendering
-
 ## Installation
 
 ### Arch Linux (AUR)
 
 ```bash
 yay -S deepcool-lm
-```
-
-After installation, configure `lm_sensors`:
-```bash
-sudo sensors-detect  # Answer YES to save configuration
-sudo systemctl enable --now lm_sensors
 ```
 
 The service will automatically start if your device is connected!
@@ -59,16 +43,28 @@ The service will automatically start if your device is connected!
 curl -fsSL https://raw.githubusercontent.com/daedlock/deepcool-lm/main/install.sh | sudo bash
 ```
 
-Or manually:
+Or download and run manually:
 ```bash
-# Install dependencies first (Python 3, pyusb, psutil, pillow, lm_sensors)
-# Then run:
 curl -O https://raw.githubusercontent.com/daedlock/deepcool-lm/main/install.sh
 chmod +x install.sh
 sudo ./install.sh
 ```
 
-**Dependencies by distribution:**
+## Post-Installation Setup
+
+### Configure Temperature Sensors
+
+The driver requires `lm_sensors` for temperature monitoring:
+
+```bash
+sudo sensors-detect  # Answer YES to save configuration
+sudo systemctl enable --now lm_sensors
+```
+
+### Install Dependencies (Non-AUR)
+
+If installing via `install.sh`, ensure these are installed first:
+
 ```bash
 # Arch Linux
 sudo pacman -S lm_sensors python-pyusb python-psutil python-pillow
@@ -78,12 +74,6 @@ sudo apt install lm-sensors python3-usb python3-psutil python3-pil
 
 # Fedora
 sudo dnf install lm_sensors python3-pyusb python3-psutil python3-pillow
-```
-
-**Configure lm_sensors:**
-```bash
-sudo sensors-detect  # Answer YES to save
-sudo systemctl enable --now lm_sensors
 ```
 
 ## Usage
