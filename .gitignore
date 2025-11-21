@@ -15,5 +15,6 @@ src/
 *.pkg.tar.zst
 *.pkg.tar.xz
 
-# Test script (development only)
+# Development/local files
 test_aur_package.sh
+AUR_PUBLISHING_GUIDE.md
